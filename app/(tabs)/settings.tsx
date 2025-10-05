@@ -39,8 +39,6 @@ export default function SettingsScreen() {
     switch (lang) {
       case "en":
         return t("english");
-      case "es":
-        return t("spanish");
       case "ar":
         return t("arabic");
       case "fr":
@@ -164,27 +162,6 @@ export default function SettingsScreen() {
                     <RadioButton.Item
                       label={t("english")}
                       value="en"
-                      position="leading"
-                      labelStyle={[
-                        styles.modernRadioLabel,
-                        { color: paperTheme.colors.onSurface },
-                      ]}
-                    />
-                  </View>
-                  <View
-                    style={[
-                      styles.modernRadioItem,
-                      {
-                        backgroundColor:
-                          theme === "dark"
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(255, 255, 255, 0.7)",
-                      },
-                    ]}
-                  >
-                    <RadioButton.Item
-                      label={t("spanish")}
-                      value="es"
                       position="leading"
                       labelStyle={[
                         styles.modernRadioLabel,

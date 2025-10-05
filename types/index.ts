@@ -1,10 +1,10 @@
 // Theme types
 export interface AppSettings {
-    language: 'en' | 'es' | 'ar' | 'fr';
+    language: 'en' | 'ar' | 'fr';
     theme: 'light' | 'dark' | 'system';
 }
 
-export type Language = 'en' | 'es' | 'ar' | 'fr';
+export type Language = 'en' | 'ar' | 'fr';
 export type Theme = 'light' | 'dark' | 'system';
 
 // Employee types
@@ -54,11 +54,7 @@ export interface MonthlyStats {
     absenceDays: number;
 }
 
-// Settings types
-export interface AppSettings {
-    language: Language;
-    theme: Theme;
-}
+// Settings types (already defined above)
 
 // Storage types
 export interface StorageItem {

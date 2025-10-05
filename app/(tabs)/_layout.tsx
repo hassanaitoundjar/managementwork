@@ -13,7 +13,6 @@ export default function TabLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="employees" />
       <Tabs.Screen name="clients" />
-      <Tabs.Screen name="reports" />
       <Tabs.Screen name="settings" />
     </Tabs>
   );

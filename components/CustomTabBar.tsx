@@ -20,7 +20,6 @@ const tabConfigs: TabConfig[] = [
   { name: 'index', icon: 'home', label: 'Home' },
   { name: 'employees', icon: 'account-group', label: 'Employees' },
   { name: 'clients', icon: 'office-building', label: 'Clients' },
-  { name: 'reports', icon: 'chart-line', label: 'Reports' },
   { name: 'settings', icon: 'cog', label: 'Settings' },
 ];
 
@@ -36,8 +35,6 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
         return t('employees');
       case 'clients':
         return t('clients');
-      case 'reports':
-        return 'Reports'; // Add translation later
       case 'settings':
         return t('settings');
       default:
