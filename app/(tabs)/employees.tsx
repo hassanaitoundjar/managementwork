@@ -20,6 +20,7 @@ import {
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Employee, EmployeeStats } from "../../types";
+import { BrandColors, getComponentColors } from "../../constants/colors";
 import {
   calculateEmployeeStats,
   formatCurrency,
@@ -31,8 +32,9 @@ const isTablet = screenWidth >= 768;
 const isLargeScreen = screenWidth >= 1024;
 
 export default function EmployeesScreen() {
-  const { paperTheme } = useTheme();
+  const { paperTheme, isDark } = useTheme();
   const { t } = useLanguage();
+  const componentColors = getComponentColors(isDark);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -168,17 +170,12 @@ export default function EmployeesScreen() {
       <Card
         key={employee.id}
         style={[
-          styles.employeeCard,
           { backgroundColor: paperTheme.colors.surface },
         ]}
         mode="elevated"
       >
         <LinearGradient
-          colors={
-            paperTheme.dark
-              ? [paperTheme.colors.surface, paperTheme.colors.surfaceVariant]
-              : ["#ffffff", "#f8f9ff"]
-          }
+          colors={componentColors.card.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}
@@ -188,7 +185,7 @@ export default function EmployeesScreen() {
             <View style={styles.modernCardHeader}>
               <View style={styles.avatarContainer}>
                 <LinearGradient
-                  colors={["#667eea", "#764ba2"]}
+                  colors={BrandColors.gradientPrimary}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.avatarGradient}
@@ -402,7 +399,7 @@ export default function EmployeesScreen() {
     >
       {/* Modern Header with Company Branding */}
       <LinearGradient
-        colors={["#667eea", "#764ba2", "#f093fb"]}
+        colors={BrandColors.gradientFull}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.modernHeader}
@@ -447,7 +444,7 @@ export default function EmployeesScreen() {
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.modernSearchbar}
-          iconColor="#667eea"
+          iconColor={BrandColors.primary}
         />
       </LinearGradient>
 
@@ -468,7 +465,7 @@ export default function EmployeesScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: "#667eea" }]}
+        style={[styles.fab, { backgroundColor: BrandColors.primary }]}
         onPress={openAddModal}
         label={t("addEmployee")}
         mode="elevated"
@@ -769,7 +766,7 @@ const styles = StyleSheet.create({
     borderRadius: isTablet ? 32 : 28,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#667eea",
+    shadowColor: BrandColors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -791,7 +788,7 @@ const styles = StyleSheet.create({
   modernDailyRate: {
     fontSize: isTablet ? 18 : 16,
     fontWeight: "600",
-    color: "#667eea",
+    color: BrandColors.primary,
     marginLeft: 6,
   },
   employeeStats: {
@@ -835,7 +832,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: "#667eea",
+    backgroundColor: BrandColors.primary,
   },
   primaryButtonText: {
     color: "#ffffff",

@@ -19,6 +19,7 @@ import {
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Client } from "../../types";
+import { BrandColors, getComponentColors } from "../../constants/colors";
 import { clientStorage, generateId } from "../../utils/storage";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
@@ -26,8 +27,9 @@ const isTablet = screenWidth >= 768;
 const isLargeScreen = screenWidth >= 1024;
 
 export default function ClientsScreen() {
-  const { paperTheme } = useTheme();
+  const { paperTheme, isDark } = useTheme();
   const { t } = useLanguage();
+  const componentColors = getComponentColors(isDark);
   const [clients, setClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -153,11 +155,7 @@ export default function ClientsScreen() {
       mode="elevated"
     >
       <LinearGradient
-        colors={
-          paperTheme.dark
-            ? [paperTheme.colors.surface, paperTheme.colors.surfaceVariant]
-            : ["#ffffff", "#f8f9ff"]
-        }
+        colors={componentColors.card.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.clientCardGradient}
@@ -167,7 +165,7 @@ export default function ClientsScreen() {
           <View style={styles.modernCardHeader}>
             <View style={styles.clientAvatarContainer}>
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={BrandColors.gradientPrimary}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.clientAvatarGradient}
@@ -295,7 +293,7 @@ export default function ClientsScreen() {
     >
       {/* Modern Header with Company Branding */}
       <LinearGradient
-        colors={["#667eea", "#764ba2", "#f093fb"]}
+        colors={BrandColors.gradientFull}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.modernHeader}
@@ -338,7 +336,7 @@ export default function ClientsScreen() {
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.modernSearchbar}
-          iconColor="#667eea"
+          iconColor={BrandColors.primary}
         />
       </LinearGradient>
 
@@ -359,7 +357,7 @@ export default function ClientsScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: "#667eea" }]}
+        style={[styles.fab, { backgroundColor: BrandColors.primary }]}
         onPress={openAddModal}
         label={t("addClient")}
         mode="elevated"
@@ -661,7 +659,7 @@ const styles = StyleSheet.create({
     borderRadius: isTablet ? 32 : 28,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#667eea",
+    shadowColor: BrandColors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -683,7 +681,7 @@ const styles = StyleSheet.create({
   clientTypeText: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: "600",
-    color: "#667eea",
+    color: BrandColors.primary,
     marginLeft: 6,
   },
   clientContactSection: {

@@ -18,6 +18,7 @@ import {
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Employee, EmployeeStats } from "../../types";
+import { BrandColors, getComponentColors } from "../../constants/colors";
 import {
   calculateEmployeeStats,
   formatCurrency,
@@ -25,8 +26,9 @@ import {
 import { employeeStorage } from "../../utils/storage";
 
 export default function HomeScreen() {
-  const { paperTheme } = useTheme();
+  const { paperTheme, isDark } = useTheme();
   const { t } = useLanguage();
+  const componentColors = getComponentColors(isDark);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,11 +76,7 @@ export default function HomeScreen() {
         mode="elevated"
       >
         <LinearGradient
-          colors={
-            paperTheme.dark
-              ? [paperTheme.colors.surface, paperTheme.colors.surfaceVariant]
-              : ["#ffffff", "#f8f9ff"]
-          }
+          colors={componentColors.card.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.cardGradient}
@@ -295,7 +293,7 @@ export default function HomeScreen() {
     >
       {/* Modern Header with Company Branding */}
       <LinearGradient
-        colors={["#667eea", "#764ba2", "#f093fb"]}
+        colors={BrandColors.gradientFull}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.modernHeader}
@@ -350,7 +348,7 @@ export default function HomeScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: "#667eea" }]}
+        style={[styles.fab, { backgroundColor: BrandColors.primary }]}
         onPress={() => router.push("/(tabs)/employees")}
         label={t("addEmployee")}
         mode="elevated"

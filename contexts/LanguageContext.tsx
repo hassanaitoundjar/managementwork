@@ -291,7 +291,7 @@ const resources = {
       netEarnings: "Gains Nets",
       clientManagement: "Gestion des Clients",
       totalClients: "Total des Clients",
-      totalEmployees: "Total des Employés",
+      totalEmployees: "Employés",
       manageYour: "Gérez vos",
 
       // Clients

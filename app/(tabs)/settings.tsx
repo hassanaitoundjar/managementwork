@@ -6,6 +6,7 @@ import { Button, Card, RadioButton, Surface, Text } from "react-native-paper";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Language, Theme } from "../../types";
+import { BrandColors, getComponentColors, getThemeColors } from "../../constants/colors";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const isTablet = screenWidth >= 768;
@@ -14,6 +15,9 @@ const isLargeScreen = screenWidth >= 1024;
 export default function SettingsScreen() {
   const { paperTheme, theme, toggleTheme, setTheme } = useTheme();
   const { t, language, setLanguage } = useLanguage();
+  const isDark = theme === 'dark';
+  const componentColors = getComponentColors(isDark);
+  const themeColors = getThemeColors(isDark);
 
   const handleLanguageChange = async (newLanguage: Language) => {
     try {
@@ -57,7 +61,7 @@ export default function SettingsScreen() {
     >
       {/* Modern Header with Company Branding */}
       <LinearGradient
-        colors={["#667eea", "#764ba2", "#f093fb"]}
+        colors={BrandColors.gradientFull}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.modernHeader}
@@ -68,8 +72,8 @@ export default function SettingsScreen() {
               <MaterialCommunityIcons name="cog" size={32} color="#ffffff" />
             </View>
             <View style={styles.brandText}>
-              <Text style={styles.companyName}>Shihabfalling</Text>
-              <Text style={styles.companyTagline}>App Settings</Text>
+              <Text style={styles.companyName}>{t("companyName")}</Text>
+              <Text style={styles.companyTagline}>{t("appSettings")}</Text>
             </View>
           </View>
 
@@ -81,15 +85,15 @@ export default function SettingsScreen() {
                 color={paperTheme.colors.primary}
               />
               <Text style={styles.statNumber}>
-                {theme === "light" ? "Light" : "Dark"}
+                {theme === "light" ? t("light") : t("dark")}
               </Text>
-              <Text style={styles.headerStatLabel}>Theme</Text>
+              <Text style={styles.headerStatLabel}>{t("themeLabel")}</Text>
             </Surface>
           </View>
         </View>
 
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Configure your</Text>
+          <Text style={styles.welcomeText}>{t("configureYour")}</Text>
           <Text style={styles.dashboardTitle}>{t("settings")}</Text>
         </View>
       </LinearGradient>
@@ -106,11 +110,7 @@ export default function SettingsScreen() {
           mode="elevated"
         >
           <LinearGradient
-            colors={
-              theme === "dark"
-                ? [paperTheme.colors.surface, paperTheme.colors.surfaceVariant]
-                : ["#ffffff", "#f8f9ff"]
-            }
+            colors={componentColors.card.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.settingsCardGradient}
@@ -119,7 +119,7 @@ export default function SettingsScreen() {
               <View style={styles.modernCardHeader}>
                 <View style={styles.settingsIconContainer}>
                   <LinearGradient
-                    colors={["#667eea", "#764ba2"]}
+                    colors={BrandColors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.settingsIconGradient}
@@ -239,7 +239,7 @@ export default function SettingsScreen() {
               <View style={styles.modernCardHeader}>
                 <View style={styles.settingsIconContainer}>
                   <LinearGradient
-                    colors={["#667eea", "#764ba2"]}
+                    colors={BrandColors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.settingsIconGradient}
@@ -367,7 +367,7 @@ export default function SettingsScreen() {
               <View style={styles.modernCardHeader}>
                 <View style={styles.settingsIconContainer}>
                   <LinearGradient
-                    colors={["#667eea", "#764ba2"]}
+                    colors={BrandColors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.settingsIconGradient}
@@ -493,7 +493,7 @@ export default function SettingsScreen() {
               <View style={styles.modernCardHeader}>
                 <View style={styles.settingsIconContainer}>
                   <LinearGradient
-                    colors={["#667eea", "#764ba2"]}
+                    colors={BrandColors.gradientPrimary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.settingsIconGradient}

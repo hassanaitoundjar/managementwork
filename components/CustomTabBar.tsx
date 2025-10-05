@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getComponentColors } from '../constants/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isTablet = screenWidth >= 768;
@@ -26,6 +27,7 @@ const tabConfigs: TabConfig[] = [
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { paperTheme, isDark } = useTheme();
   const { t } = useLanguage();
+  const componentColors = getComponentColors(isDark);
 
   const getTabLabel = (routeName: string, originalLabel: string) => {
     switch (routeName) {
@@ -42,7 +44,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
     }
   };
 
-  const styles = createStyles(paperTheme, isDark, isTablet, isLargeScreen);
+  const styles = createStyles(paperTheme, isDark, isTablet, isLargeScreen, componentColors);
 
   return (
     <Surface style={styles.container} elevation={0}>
@@ -117,16 +119,16 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
   );
 }
 
-const createStyles = (theme: any, isDark: boolean, isTablet: boolean, isLargeScreen: boolean) => {
+const createStyles = (theme: any, isDark: boolean, isTablet: boolean, isLargeScreen: boolean, componentColors: any) => {
   const tabHeight = isTablet ? 85 : 75;
   const iconSize = isTablet ? 26 : 22;
   const fontSize = isTablet ? 13 : 11;
   
   return StyleSheet.create({
     container: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: componentColors.tabBar.background,
       borderTopWidth: 0.5,
-      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+      borderTopColor: componentColors.tabBar.border,
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -163,13 +165,9 @@ const createStyles = (theme: any, isDark: boolean, isTablet: boolean, isLargeScr
       marginHorizontal: 2,
     },
     tabItemActive: {
-      backgroundColor: isDark 
-        ? 'rgba(255, 255, 255, 0.10)' 
-        : 'rgba(103, 126, 234, 0.08)',
+      backgroundColor: componentColors.tabBar.activeBackground,
       borderWidth: 1,
-      borderColor: isDark 
-        ? 'rgba(255, 255, 255, 0.15)' 
-        : 'rgba(103, 126, 234, 0.12)',
+      borderColor: componentColors.tabBar.activeBorder,
     },
     iconContainer: {
       width: iconSize + 12,
@@ -181,15 +179,13 @@ const createStyles = (theme: any, isDark: boolean, isTablet: boolean, isLargeScr
       backgroundColor: 'transparent',
     },
     iconContainerActive: {
-      backgroundColor: isDark 
-        ? 'rgba(103, 126, 234, 0.15)' 
-        : 'rgba(103, 126, 234, 0.10)',
+      backgroundColor: componentColors.tabBar.activeBackground,
     },
     iconActive: {
-      color: theme.colors.primary,
+      color: componentColors.tabBar.active,
     },
     iconInactive: {
-      color: isDark ? 'rgba(255, 255, 255, 0.60)' : 'rgba(0, 0, 0, 0.60)',
+      color: componentColors.tabBar.inactive,
     },
     label: {
       fontSize: fontSize,
@@ -199,11 +195,11 @@ const createStyles = (theme: any, isDark: boolean, isTablet: boolean, isLargeScr
       lineHeight: fontSize + 2,
     },
     labelActive: {
-      color: theme.colors.primary,
+      color: componentColors.tabBar.active,
       fontWeight: '600',
     },
     labelInactive: {
-      color: isDark ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)',
+      color: componentColors.tabBar.inactive,
     },
   });
 };
