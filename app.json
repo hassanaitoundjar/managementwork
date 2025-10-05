@@ -1,25 +1,39 @@
 {
   "expo": {
-    "name": "works",
-    "slug": "works",
+    "name": "Shihabfalling Employee Management",
+    "slug": "shihabfalling-employee-management",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "works",
+    "scheme": "shihabfalling",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shihabfalling.employeemanagement",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "background-fetch"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.shihabfalling.employeemanagement",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#667eea",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "static",
@@ -43,6 +57,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e0701680-fcd5-41ff-b6fe-4ef1e43c4115"
+      }
     }
   }
 }
