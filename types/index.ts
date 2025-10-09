@@ -24,14 +24,23 @@ export interface Client {
     createdAt: string;
 }
 
+// Work shift types
+export interface WorkShift {
+    morning?: boolean; // Morning shift
+    evening?: boolean; // Evening shift
+    allDay?: boolean; // Full day work
+}
+
 // Work record types
 export interface WorkRecord {
     id: string;
     employeeId: string;
     date: string; // YYYY-MM-DD format
     clientIds: string[];
-    clientHours?: { [clientId: string]: number };
+    clientHours?: { [clientId: string]: number }; // Legacy support
+    clientShifts?: { [clientId: string]: WorkShift }; // New shift system
     isAbsence: boolean;
+    dailyAdvance?: number; // Daily advance amount for this specific day
     createdAt: string;
 }
 

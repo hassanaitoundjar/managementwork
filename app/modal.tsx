@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
+import { syncEmployeeAdvances } from "../utils/advanceCalculations";
 import {
   Button,
   Card,
@@ -29,7 +30,7 @@ import {
 } from "react-native-paper";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { Client, Employee, WorkRecord } from "../types";
+import { Client, Employee, WorkRecord, WorkShift } from "../types";
 import { calculateMonthlyStats, formatCurrency } from "../utils/calculations";
 import {
   clientStorage,
@@ -78,6 +79,15 @@ export default function EmployeeCalendarModal() {
   const [clientHours, setClientHours] = useState<{
     [clientId: string]: string;
   }>({});
+  
+  // New shift system state
+  const [clientShifts, setClientShifts] = useState<{
+    [clientId: string]: {
+      morning: boolean;
+      evening: boolean;
+      allDay: boolean;
+    };
+  }>({});
 
   useEffect(() => {
     loadData();
@@ -89,18 +99,92 @@ export default function EmployeeCalendarModal() {
     }
   }, [employee, currentMonth, workRecords]);
 
+  // Pre-populate form when selecting a date with existing data
+  useEffect(() => {
+    if (selectedDate && workRecords.length > 0) {
+      const existingRecord = workRecords.find(
+        (record) => record.date === selectedDate
+      );
+      
+      if (existingRecord) {
+        // Set advance amount if exists
+        if (existingRecord.dailyAdvance && existingRecord.dailyAdvance > 0) {
+          setAdvanceAmount(existingRecord.dailyAdvance.toString());
+        } else {
+          setAdvanceAmount("");
+        }
+        
+        // Set absence status
+        setIsAbsence(existingRecord.isAbsence);
+        
+        // Set selected clients
+        if (!existingRecord.isAbsence && existingRecord.clientIds) {
+          setSelectedClients(existingRecord.clientIds);
+          
+          // Set client shifts if available (new system)
+          if (existingRecord.clientShifts) {
+            const shiftsData: { [clientId: string]: { morning: boolean; evening: boolean; allDay: boolean } } = {};
+            Object.entries(existingRecord.clientShifts).forEach(([clientId, shift]) => {
+              shiftsData[clientId] = {
+                morning: shift.morning || false,
+                evening: shift.evening || false,
+                allDay: shift.allDay || false,
+              };
+            });
+            setClientShifts(shiftsData);
+          }
+          
+          // Set legacy client hours if available (backward compatibility)
+          if (existingRecord.clientHours) {
+            const hoursData: { [clientId: string]: string } = {};
+            Object.entries(existingRecord.clientHours).forEach(([clientId, hours]) => {
+              hoursData[clientId] = hours.toString();
+            });
+            setClientHours(hoursData);
+          }
+        } else {
+          setSelectedClients([]);
+          setClientHours({});
+          setClientShifts({});
+        }
+      } else {
+        // Reset form for new date
+        setAdvanceAmount("");
+        setIsAbsence(false);
+        setSelectedClients([]);
+        setClientHours({});
+        setClientShifts({});
+      }
+    }
+  }, [selectedDate, workRecords]);
+
   const loadData = async () => {
     try {
       if (typeof employeeId === "string") {
         const emp = await employeeStorage.getById(employeeId);
-        setEmployee(emp);
-
+        
         const clientList = await clientStorage.getAll();
         console.log("Loaded clients:", clientList.length, clientList);
         setClients(clientList);
 
         const records = await workRecordStorage.getByEmployee(employeeId);
         setWorkRecords(records);
+
+        // Sync employee advances with actual work record advances
+        if (emp) {
+          const actualAdvances = syncEmployeeAdvances(records);
+          if (actualAdvances !== (emp.advances || 0)) {
+            console.log(`Syncing advances for ${emp.name}: ${emp.advances || 0} -> ${actualAdvances}`);
+            const updatedEmployee = {
+              ...emp,
+              advances: actualAdvances,
+            };
+            await employeeStorage.update(updatedEmployee);
+            setEmployee(updatedEmployee);
+          } else {
+            setEmployee(emp);
+          }
+        }
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -229,11 +313,30 @@ export default function EmployeeCalendarModal() {
   };
 
   const toggleClientSelection = (clientId: string) => {
-    setSelectedClients((prev) =>
-      prev.includes(clientId)
-        ? prev.filter((id) => id !== clientId)
-        : [...prev, clientId]
-    );
+    setSelectedClients((prev) => {
+      const isSelected = prev.includes(clientId);
+      
+      if (isSelected) {
+        // Remove client and clear its shift data
+        setClientShifts((prevShifts) => {
+          const newShifts = { ...prevShifts };
+          delete newShifts[clientId];
+          return newShifts;
+        });
+        return prev.filter((id) => id !== clientId);
+      } else {
+        // Add client and initialize shift data
+        setClientShifts((prevShifts) => ({
+          ...prevShifts,
+          [clientId]: {
+            morning: false,
+            evening: false,
+            allDay: false,
+          },
+        }));
+        return [...prev, clientId];
+      }
+    });
   };
 
   const handleAdvancePayment = async () => {
@@ -276,7 +379,7 @@ export default function EmployeeCalendarModal() {
       );
 
       if (isAbsence || selectedClients.length > 0) {
-        // Convert client hours to numbers
+        // Convert client hours to numbers (legacy support)
         const hoursData: { [clientId: string]: number } = {};
         selectedClients.forEach((clientId) => {
           const hours = clientHours[clientId];
@@ -285,49 +388,79 @@ export default function EmployeeCalendarModal() {
           }
         });
 
+        // Convert client shifts to proper format (new system)
+        const shiftsData: { [clientId: string]: WorkShift } = {};
+        selectedClients.forEach((clientId) => {
+          const shift = clientShifts[clientId];
+          if (shift && (shift.morning || shift.evening || shift.allDay)) {
+            const workShift: WorkShift = {
+              morning: shift.morning,
+              evening: shift.evening,
+              allDay: shift.allDay,
+            };
+            
+            shiftsData[clientId] = workShift;
+          }
+        });
+
+        // Handle daily advance
+        const dailyAdvanceAmount = advanceAmount && !isNaN(Number(advanceAmount)) && Number(advanceAmount) > 0 
+          ? Number(advanceAmount) 
+          : 0;
+
         const workRecord: WorkRecord = {
           id: existingRecord?.id || generateId(),
           employeeId: employee.id,
           date: selectedDate,
           clientIds: isAbsence ? [] : selectedClients,
-          clientHours: isAbsence ? undefined : hoursData,
+          clientHours: isAbsence ? {} : hoursData, // Legacy support
+          clientShifts: isAbsence ? {} : shiftsData, // New shift system
           isAbsence,
+          dailyAdvance: dailyAdvanceAmount,
           createdAt: existingRecord?.createdAt || new Date().toISOString(),
         };
 
         if (existingRecord) {
+          // If updating existing record, handle advance difference
+          const previousAdvance = existingRecord.dailyAdvance || 0;
+          const advanceDifference = dailyAdvanceAmount - previousAdvance;
+          
           await workRecordStorage.update(workRecord);
+          
+          if (advanceDifference !== 0) {
+            const currentAdvances = employee.advances || 0;
+            const updatedEmployee = {
+              ...employee,
+              advances: currentAdvances + advanceDifference,
+            };
+            await employeeStorage.update(updatedEmployee);
+            setEmployee(updatedEmployee);
+          }
         } else {
           await workRecordStorage.add(workRecord);
+          
+          // Update employee's total advances only if there's a daily advance
+          if (dailyAdvanceAmount > 0) {
+            const currentAdvances = employee.advances || 0;
+            const updatedEmployee = {
+              ...employee,
+              advances: currentAdvances + dailyAdvanceAmount,
+            };
+            await employeeStorage.update(updatedEmployee);
+            setEmployee(updatedEmployee);
+          }
         }
 
-        Alert.alert(t("success"), t("workDayUpdated"));
-      } else if (existingRecord) {
-        // Remove the record if no clients selected and not an absence
-        await workRecordStorage.delete(existingRecord.id);
-        Alert.alert(t("success"), "Work day removed");
-      }
+        console.log("Work record saved:", workRecord);
 
-      // Handle advance payment if entered
-      if (
-        advanceAmount &&
-        !isNaN(Number(advanceAmount)) &&
-        Number(advanceAmount) > 0
-      ) {
-        const amount = Number(advanceAmount);
-        const currentAdvances = employee.advances || 0;
-        const updatedEmployee = {
-          ...employee,
-          advances: currentAdvances + amount,
-        };
-        await employeeStorage.update(updatedEmployee);
-        setEmployee(updatedEmployee);
-        Alert.alert(
-          "Success",
-          `Work day saved and advance of ${formatCurrency(amount)} added`
-        );
-      } else {
-        Alert.alert("Success", "Work day saved");
+        if (dailyAdvanceAmount > 0) {
+          Alert.alert(
+            "Success",
+            `Work day saved and advance of ${formatCurrency(dailyAdvanceAmount)} added`
+          );
+        } else {
+          Alert.alert("Success", "Work day saved");
+        }
       }
 
       console.log("Saved work day, clearing selection");
@@ -336,6 +469,7 @@ export default function EmployeeCalendarModal() {
       setIsAbsence(false);
       setAdvanceAmount("");
       setClientHours({});
+      setClientShifts({});
       loadData();
       loadMonthlyStats();
     } catch (error) {
@@ -970,25 +1104,96 @@ export default function EmployeeCalendarModal() {
                                 )}
                               </TouchableOpacity>
 
-                              {/* Time input for selected clients */}
+                              {/* Shift system for selected clients */}
                               {selectedClients.includes(client.id) && (
-                                <View style={styles.timeInputContainer}>
-                                  <TextInput
-                                    label={t("hoursWorked")}
-                                    value={clientHours[client.id] || ""}
-                                    onChangeText={(hours) => {
-                                      setClientHours((prev) => ({
-                                        ...prev,
-                                        [client.id]: hours,
-                                      }));
-                                    }}
-                                    keyboardType="numeric"
-                                    mode="outlined"
-                                    dense
-                                    style={styles.timeInput}
-                                    placeholder="0.0"
-                                    right={<TextInput.Affix text="hrs" />}
-                                  />
+                                <View style={styles.shiftContainer}>
+                                  <Text style={[styles.shiftTitle, { color: paperTheme.colors.onSurface }]}>
+                                    {t("workShifts")}
+                                  </Text>
+                                  
+                                  {/* Morning Shift Checkbox */}
+                                  <View style={styles.shiftOption}>
+                                    <Checkbox
+                                      status={
+                                        clientShifts[client.id]?.morning ? "checked" : "unchecked"
+                                      }
+                                      onPress={() => {
+                                        setClientShifts((prev) => ({
+                                          ...prev,
+                                          [client.id]: {
+                                            ...prev[client.id],
+                                            morning: !prev[client.id]?.morning,
+                                            allDay: false, // Uncheck all day when selecting specific shifts
+                                          },
+                                        }));
+                                      }}
+                                    />
+                                    <MaterialCommunityIcons
+                                      name="weather-sunny"
+                                      size={20}
+                                      color={paperTheme.colors.primary}
+                                      style={{ marginLeft: 8, marginRight: 8 }}
+                                    />
+                                    <Text style={[styles.shiftOptionText, { color: paperTheme.colors.onSurface }]}>
+                                      {t("morningShift")}
+                                    </Text>
+                                  </View>
+
+                                  {/* Evening Shift Checkbox */}
+                                  <View style={styles.shiftOption}>
+                                    <Checkbox
+                                      status={
+                                        clientShifts[client.id]?.evening ? "checked" : "unchecked"
+                                      }
+                                      onPress={() => {
+                                        setClientShifts((prev) => ({
+                                          ...prev,
+                                          [client.id]: {
+                                            ...prev[client.id],
+                                            evening: !prev[client.id]?.evening,
+                                            allDay: false, // Uncheck all day when selecting specific shifts
+                                          },
+                                        }));
+                                      }}
+                                    />
+                                    <MaterialCommunityIcons
+                                      name="weather-night"
+                                      size={20}
+                                      color={paperTheme.colors.primary}
+                                      style={{ marginLeft: 8, marginRight: 8 }}
+                                    />
+                                    <Text style={[styles.shiftOptionText, { color: paperTheme.colors.onSurface }]}>
+                                      {t("eveningShift")}
+                                    </Text>
+                                  </View>
+
+                                  {/* All Day Checkbox */}
+                                  <View style={styles.shiftOption}>
+                                    <Checkbox
+                                      status={
+                                        clientShifts[client.id]?.allDay ? "checked" : "unchecked"
+                                      }
+                                      onPress={() => {
+                                        setClientShifts((prev) => ({
+                                          ...prev,
+                                          [client.id]: {
+                                            morning: false, // Clear specific shifts when selecting all day
+                                            evening: false,
+                                            allDay: !prev[client.id]?.allDay,
+                                          },
+                                        }));
+                                      }}
+                                    />
+                                    <MaterialCommunityIcons
+                                      name="clock-outline"
+                                      size={20}
+                                      color={paperTheme.colors.primary}
+                                      style={{ marginLeft: 8, marginRight: 8 }}
+                                    />
+                                    <Text style={[styles.shiftOptionText, { color: paperTheme.colors.onSurface }]}>
+                                      {t("allDayWork")}
+                                    </Text>
+                                  </View>
                                 </View>
                               )}
                             </View>
@@ -1026,6 +1231,33 @@ export default function EmployeeCalendarModal() {
                   >
                     {t("dailyAdvance")}
                   </Text>
+                  {(() => {
+                    const existingRecord = workRecords.find(
+                      (record) => record.date === selectedDate
+                    );
+                    const existingAdvance = existingRecord?.dailyAdvance || 0;
+                    
+                    if (existingAdvance > 0) {
+                      return (
+                        <View style={styles.existingAdvanceInfo}>
+                          <MaterialCommunityIcons
+                            name="information"
+                            size={16}
+                            color={paperTheme.colors.primary}
+                          />
+                          <Text
+                            style={[
+                              styles.existingAdvanceText,
+                              { color: paperTheme.colors.primary },
+                            ]}
+                          >
+                            Current advance: {formatCurrency(existingAdvance)}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
                   <TextInput
                     label={t("advanceAmount")}
                     value={advanceAmount}
@@ -1045,6 +1277,14 @@ export default function EmployeeCalendarModal() {
                   >
                     {t("advanceNote")}
                   </Text>
+                  <Text
+                    style={[
+                      styles.totalAdvancesInfo,
+                      { color: paperTheme.colors.onSurfaceVariant },
+                    ]}
+                  >
+                    Total advances: {formatCurrency(employee?.advances || 0)}
+                  </Text>
                 </View>
 
                 <View style={styles.modalActions}>
@@ -1056,6 +1296,7 @@ export default function EmployeeCalendarModal() {
                       setIsAbsence(false);
                       setAdvanceAmount("");
                       setClientHours({});
+                      setClientShifts({});
                     }}
                     style={styles.modalButton}
                     textColor={paperTheme.colors.onSurface}
@@ -1064,18 +1305,32 @@ export default function EmployeeCalendarModal() {
                   </Button>
                   <Button
                     onPress={async () => {
-                      if (selectedDate) {
+                      if (selectedDate && employee) {
                         const existingRecord = workRecords.find(
                           (record) => record.date === selectedDate
                         );
                         if (existingRecord) {
+                          // If there was a daily advance, subtract it from employee's total
+                          if (existingRecord.dailyAdvance && existingRecord.dailyAdvance > 0) {
+                            const currentAdvances = employee.advances || 0;
+                            const updatedEmployee = {
+                              ...employee,
+                              advances: Math.max(0, currentAdvances - existingRecord.dailyAdvance),
+                            };
+                            await employeeStorage.update(updatedEmployee);
+                            setEmployee(updatedEmployee);
+                          }
+                          
                           await workRecordStorage.delete(existingRecord.id);
-                          Alert.alert("Success", "Work day cleared");
+                          Alert.alert("Success", "Work day cleared and advance removed");
                           setSelectedDate("");
                           setSelectedClients([]);
                           setIsAbsence(false);
                           setAdvanceAmount("");
+                          setClientHours({});
+                          setClientShifts({});
                           loadData();
+                          loadMonthlyStats();
                         }
                       }
                     }}
@@ -1680,5 +1935,47 @@ const styles = StyleSheet.create({
   },
   modernWorkDayContent: {
     padding: 0,
+  },
+  existingAdvanceInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    borderRadius: 8,
+  },
+  existingAdvanceText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  totalAdvancesInfo: {
+    fontSize: 12,
+    fontStyle: "italic",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  shiftContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: "rgba(102, 126, 234, 0.05)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(102, 126, 234, 0.2)",
+  },
+  shiftTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  shiftOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  shiftOptionText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
